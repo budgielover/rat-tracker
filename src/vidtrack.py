@@ -144,10 +144,6 @@ def candidatePoints(f):
         threshold = interpolate(minVal, maxVal, 0.3)
         _, fgmask = cv2.threshold(BGsubtract, threshold, 255, cv2.THRESH_BINARY)
 
-        channels = cv2.split(frame)
-
-        thresh = cv2.adaptiveThreshold(BGsubtract, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 7, -70)
-
         # a saturation threshold to detect the "most colorful" pixels
         smask = cv2.inRange(sat, SAT_THRESHOLD, 255)
 
@@ -351,7 +347,7 @@ def processVideo(f):
 
     print("Done processing. Interpolating path...")
     data = list(findCenters(pts))
-    reviewCoords(data, f)
+    //reviewCoords(data, f)
     data = list(simpleInterpolate(data))
     writeCSV(data)
 
