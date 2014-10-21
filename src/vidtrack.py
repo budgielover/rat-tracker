@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-
+#hana was here
 # builtin
 from itertools import islice, izip
 from math import sqrt
