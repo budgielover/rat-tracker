@@ -9,17 +9,6 @@ import csv
 
 # 3rd party
 import cv2
-import cv2.cv
-import numpy
-
-# Settings
-N = 1
-MAX_SEP = 10
-
-EXPECTED_SEP = 7
-EXPECTED_MOVEMENT = 5
-MAX_EXPECTED_MOVEMENT = 20
-SAT_THRESHOLD = 8
 
 ###############################################################################
 
@@ -47,7 +36,7 @@ def brightest(frame, n, bgmask = None):
     """
     frame = frame.copy()
     for _ in range(0, n):
-        minVal, maxVal, minLoc, maxLoc = cv2.minMaxLoc(frame, bgmask)
+        minVal, maxVal, minLoc, maxLoc = cv2.minMaxLoc(frame, None)
         yield maxLoc
         frame[maxLoc[1], maxLoc[0]] = 0 # so it won't be found next
 
@@ -164,6 +153,20 @@ def candidatePoints(f):
         bestReds = [r for r in bestReds if minDist(r, bestGreens) <= MAX_SEP] if bestGreens else []
         bestGreens = [g for g in bestGreens if minDist(g, bestReds) <= MAX_SEP] if bestReds else []
 
+        # Haoyu: rats can not "jump"
+        if n==1:
+            same=0
+        if same < SAME and n > 10 and  pow(bestGreens[0][0]-pregreen[0][0],2)+pow(bestGreens[0][1]-pregreen[0][1],2) > JUMP:
+            bestGreens=pregreen
+        if same < SAME and n > 10 and pow(bestReds[0][0]-prered[0][0],2)+pow(bestReds[0][1]-prered[0][1],2) > JUMP:
+            bestReds=prered
+        if n>10 and bestReds==prered:
+            same=same+1
+        else:
+            same=0
+        prered=bestReds
+        pregreen=bestGreens 
+        
         yield (bestReds, bestGreens)
 
 def findCenters(data):
