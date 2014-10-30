@@ -10,6 +10,17 @@ import csv
 # 3rd party
 import cv2
 
+# Settings
+N = 1
+MAX_SEP = 10
+
+EXPECTED_SEP = 7
+EXPECTED_MOVEMENT = 5
+MAX_EXPECTED_MOVEMENT = 20
+SAT_THRESHOLD = 8
+
+JUMP = 600
+SAME = 10
 ###############################################################################
 
 def frames(videoFile):
