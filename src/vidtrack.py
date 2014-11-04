@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#hana was here
+
 # builtin
 from itertools import islice, izip
 from math import sqrt
@@ -9,7 +9,9 @@ import csv
 
 # 3rd party
 import cv2
-
+import cv2.cv
+import numpy
+from numpy import unravel_index
 # Settings
 N = 1
 MAX_SEP = 10
@@ -21,6 +23,8 @@ SAT_THRESHOLD = 8
 
 JUMP = 600
 SAME = 10
+DIST = 100
+
 ###############################################################################
 
 def frames(videoFile):
@@ -37,17 +41,22 @@ def frames(videoFile):
         if not ret:
             break
         n += 1
-        yield (n, total, frame)
+        yield (n, total, frame)	
     cap.release()
 
 def brightest(frame, n, bgmask = None):
     """
     Returns the locations of the brightest n spots in the frame
-    This isn't quite working right and I'm not sure why... 
+    This isn't quite working right and I'm not sure why...
     """
     frame = frame.copy()
     for _ in range(0, n):
+
+        #Haoyu's revise
         minVal, maxVal, minLoc, maxLoc = cv2.minMaxLoc(frame, None)
+        #previous version: minVal, maxVal, minLoc, maxLoc = cv2.minMaxLoc(frame, bgmask)
+
+        #print frame  
         yield maxLoc
         frame[maxLoc[1], maxLoc[0]] = 0 # so it won't be found next
 
@@ -124,7 +133,6 @@ def candidatePoints(f):
     # First, find background composite of the whole video
     bg = findBackground(f, 0.01)
     print("Finished averaging background frame")
-
     for n, total, frame in frames(f):
         frame = frame.copy()
         if n % 1000 == 0:
@@ -160,7 +168,6 @@ def candidatePoints(f):
 
         bestGreens = list(brightest(BGsubtract, N, gsmask))
         bestReds = list(brightest(BGsubtract, N, rsmask))
-
         bestReds = [r for r in bestReds if minDist(r, bestGreens) <= MAX_SEP] if bestGreens else []
         bestGreens = [g for g in bestGreens if minDist(g, bestReds) <= MAX_SEP] if bestReds else []
 
@@ -176,9 +183,10 @@ def candidatePoints(f):
         else:
             same=0
         prered=bestReds
-        pregreen=bestGreens 
-        
+        pregreen=bestGreens
         yield (bestReds, bestGreens)
+
+
 
 def findCenters(data):
 
@@ -212,7 +220,7 @@ def writeCSV(data):
 
 def reviewCoords(data, f):
     """
-    This simply plays the video back frame by frame superimposing the points from the 
+    This simply plays the video back frame by frame superimposing the points from the
     rest of the function onto it. It allows the user to click to change the point if it
     seems to be deviating too far.
     """
@@ -300,7 +308,7 @@ def simpleInterpolate(data):
         return newPt
 
     def bookend(data):
-        # I need to ensure that the first and last points are not EMPTY for 
+        # I need to ensure that the first and last points are not EMPTY for
         # fillEmpty() to function properly
 
         newData = []
@@ -351,23 +359,24 @@ def simpleInterpolate(data):
     data = list(bookend(data))
     data = list(findOutliers(data))
     data = list(bookend(data))
- 
+
     return fillEmpty(data)
 
 
 def processVideo(f):
     print("Processing frames...")
     pts = list(candidatePoints(f))
-
     print("Done processing. Interpolating path...")
     data = list(findCenters(pts))
-    //reviewCoords(data, f)
-    data = list(simpleInterpolate(data))
+    reviewCoords(data, f)
+    #by Haoyu
+    #data = list(simpleInterpolate(data))
     writeCSV(data)
 
 def run():
     for vid in sys.argv[1:]:
         processVideo(vid)
+    processVideo(vid)
     cv2.destroyAllWindows()
 
 
