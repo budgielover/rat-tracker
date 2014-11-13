@@ -1,0 +1,457 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>vidtrack &mdash; Rat-tracker 0.1 documentation</title>
+    
+    <link rel="stylesheet" href="../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <link rel="top" title="Rat-tracker 0.1 documentation" href="../index.html" />
+    <link rel="up" title="Module code" href="index.html" /> 
+  </head>
+  <body role="document">
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../index.html">Rat-tracker 0.1 documentation</a> &raquo;</li>
+          <li><a href="index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for vidtrack</h1><div class="highlight"><pre>
+<span class="c">#!/usr/bin/env python</span>
+<span class="c">#hana was here</span>
+<span class="c"># builtin</span>
+<span class="kn">from</span> <span class="nn">itertools</span> <span class="kn">import</span> <span class="n">islice</span><span class="p">,</span> <span class="n">izip</span>
+<span class="kn">from</span> <span class="nn">math</span> <span class="kn">import</span> <span class="n">sqrt</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">random</span>
+<span class="kn">import</span> <span class="nn">csv</span>
+
+<span class="c"># 3rd party</span>
+<span class="kn">import</span> <span class="nn">cv2</span>
+<span class="kn">import</span> <span class="nn">cv2.cv</span>
+<span class="kn">import</span> <span class="nn">numpy</span>
+
+<span class="c"># Settings</span>
+<span class="n">N</span> <span class="o">=</span> <span class="mi">1</span>
+<span class="n">MAX_SEP</span> <span class="o">=</span> <span class="mi">10</span>
+
+<span class="n">EXPECTED_SEP</span> <span class="o">=</span> <span class="mi">7</span>
+<span class="n">EXPECTED_MOVEMENT</span> <span class="o">=</span> <span class="mi">5</span>
+<span class="n">MAX_EXPECTED_MOVEMENT</span> <span class="o">=</span> <span class="mi">20</span>
+<span class="n">SAT_THRESHOLD</span> <span class="o">=</span> <span class="mi">8</span>
+
+<span class="c">###############################################################################</span>
+
+<div class="viewcode-block" id="frames"><a class="viewcode-back" href="../vidtrack.html#vidtrack.frames">[docs]</a><span class="k">def</span> <span class="nf">frames</span><span class="p">(</span><span class="n">videoFile</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Generator for frames from a video file.</span>
+<span class="sd">    Yields (frameNum, totalFrames, frame) tuples.</span>
+<span class="sd">    FrameNum starts from 1.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">cap</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">VideoCapture</span><span class="p">(</span><span class="n">videoFile</span><span class="p">)</span>
+    <span class="n">total</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">cap</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">cv2</span><span class="o">.</span><span class="n">cv</span><span class="o">.</span><span class="n">CV_CAP_PROP_FRAME_COUNT</span><span class="p">))</span>
+    <span class="n">n</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">while</span> <span class="bp">True</span><span class="p">:</span>
+        <span class="n">ret</span><span class="p">,</span> <span class="n">frame</span> <span class="o">=</span> <span class="n">cap</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">ret</span><span class="p">:</span>
+            <span class="k">break</span>
+        <span class="n">n</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">yield</span> <span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">total</span><span class="p">,</span> <span class="n">frame</span><span class="p">)</span>
+    <span class="n">cap</span><span class="o">.</span><span class="n">release</span><span class="p">()</span>
+</div>
+<div class="viewcode-block" id="brightest"><a class="viewcode-back" href="../vidtrack.html#vidtrack.brightest">[docs]</a><span class="k">def</span> <span class="nf">brightest</span><span class="p">(</span><span class="n">frame</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">bgmask</span> <span class="o">=</span> <span class="bp">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Returns the locations of the brightest n spots in the frame</span>
+<span class="sd">    This isn&#39;t quite working right and I&#39;m not sure why... </span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">frame</span> <span class="o">=</span> <span class="n">frame</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">n</span><span class="p">):</span>
+        <span class="n">minVal</span><span class="p">,</span> <span class="n">maxVal</span><span class="p">,</span> <span class="n">minLoc</span><span class="p">,</span> <span class="n">maxLoc</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">minMaxLoc</span><span class="p">(</span><span class="n">frame</span><span class="p">,</span> <span class="n">bgmask</span><span class="p">)</span>
+        <span class="k">yield</span> <span class="n">maxLoc</span>
+        <span class="n">frame</span><span class="p">[</span><span class="n">maxLoc</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">maxLoc</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span> <span class="o">=</span> <span class="mi">0</span> <span class="c"># so it won&#39;t be found next</span>
+</div>
+<div class="viewcode-block" id="mostColorful"><a class="viewcode-back" href="../vidtrack.html#vidtrack.mostColorful">[docs]</a><span class="k">def</span> <span class="nf">mostColorful</span><span class="p">(</span><span class="n">channels</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">channel</span><span class="p">,</span> <span class="n">bgmask</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Channels should be output of cv2.split(img).</span>
+<span class="sd">    Returns the locations of the n most pure examples of the specified channel.</span>
+<span class="sd">    Values for channel number depend on your image format, but usually:</span>
+<span class="sd">    </span>
+<span class="sd">    - 0 = blue</span>
+<span class="sd">    </span>
+<span class="sd">    - 1 = green</span>
+<span class="sd">    </span>
+<span class="sd">    - 2 = red</span>
+<span class="sd">    </span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">primary</span> <span class="o">=</span> <span class="n">channels</span><span class="p">[</span><span class="n">channel</span><span class="p">]</span>
+    <span class="n">others</span> <span class="o">=</span> <span class="n">channels</span><span class="p">[:</span><span class="n">channel</span><span class="p">]</span> <span class="o">+</span> <span class="n">channels</span><span class="p">[</span><span class="n">channel</span><span class="o">+</span><span class="mi">1</span><span class="p">:]</span>
+    <span class="k">for</span> <span class="n">other</span> <span class="ow">in</span> <span class="n">others</span><span class="p">:</span>
+        <span class="n">primary</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">addWeighted</span><span class="p">(</span><span class="n">primary</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">other</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.5</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">brightest</span><span class="p">(</span><span class="n">primary</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">bgmask</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="interpolate"><a class="viewcode-back" href="../vidtrack.html#vidtrack.interpolate">[docs]</a><span class="k">def</span> <span class="nf">interpolate</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">alpha</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">x</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">alpha</span><span class="p">)</span> <span class="o">+</span> <span class="n">y</span> <span class="o">*</span> <span class="n">alpha</span>
+</div>
+<div class="viewcode-block" id="simpleComponents"><a class="viewcode-back" href="../vidtrack.html#vidtrack.simpleComponents">[docs]</a><span class="k">def</span> <span class="nf">simpleComponents</span><span class="p">(</span><span class="n">img</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    input: b/w image</span>
+<span class="sd">    output: generator of (pos, area) tuples</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">blobs</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">findContours</span><span class="p">(</span><span class="n">img</span><span class="o">.</span><span class="n">copy</span><span class="p">(),</span> <span class="n">cv2</span><span class="o">.</span><span class="n">RETR_LIST</span><span class="p">,</span> <span class="n">cv2</span><span class="o">.</span><span class="n">CHAIN_APPROX_SIMPLE</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">blob</span> <span class="ow">in</span> <span class="n">blobs</span><span class="p">:</span>
+        <span class="n">area</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">contourArea</span><span class="p">(</span><span class="n">blob</span><span class="p">)</span>
+        <span class="n">center</span><span class="p">,</span> <span class="n">radius</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">minEnclosingCircle</span><span class="p">(</span><span class="n">blob</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">area</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">yield</span> <span class="p">(</span><span class="n">center</span><span class="p">,</span> <span class="n">area</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="dist"><a class="viewcode-back" href="../vidtrack.html#vidtrack.dist">[docs]</a><span class="k">def</span> <span class="nf">dist</span><span class="p">(</span><span class="n">pt1</span><span class="p">,</span> <span class="n">pt2</span><span class="p">):</span>
+    <span class="n">dx</span> <span class="o">=</span> <span class="n">pt1</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">pt2</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">dy</span> <span class="o">=</span> <span class="n">pt1</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">pt2</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">sqrt</span><span class="p">(</span><span class="n">dx</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">dy</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="minDist"><a class="viewcode-back" href="../vidtrack.html#vidtrack.minDist">[docs]</a><span class="k">def</span> <span class="nf">minDist</span><span class="p">(</span><span class="n">pt</span><span class="p">,</span> <span class="n">pts</span><span class="p">):</span>
+    <span class="k">return</span> <span class="nb">min</span><span class="p">(</span><span class="n">dist</span><span class="p">(</span><span class="n">pt</span><span class="p">,</span> <span class="n">p</span><span class="p">)</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">pts</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="countChannel"><a class="viewcode-back" href="../vidtrack.html#vidtrack.countChannel">[docs]</a><span class="k">def</span> <span class="nf">countChannel</span><span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="n">pt</span><span class="p">,</span> <span class="n">radius</span><span class="p">,</span> <span class="n">channel</span><span class="p">):</span>
+    <span class="n">count</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">pt</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">radius</span><span class="p">,</span> <span class="n">pt</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">radius</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">y</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">pt</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">radius</span><span class="p">,</span> <span class="n">pt</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">radius</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="n">d</span> <span class="o">=</span> <span class="n">dist</span><span class="p">((</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">),</span> <span class="n">pt</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">d</span> <span class="o">&lt;=</span> <span class="n">radius</span> <span class="ow">and</span> <span class="n">x</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">y</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">x</span> <span class="o">&lt;</span> <span class="n">img</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">and</span> <span class="n">y</span> <span class="o">&lt;</span> <span class="n">img</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span>
+                <span class="n">count</span> <span class="o">+=</span> <span class="n">img</span><span class="p">[</span><span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">][</span><span class="n">channel</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">count</span>
+</div>
+<div class="viewcode-block" id="findBackground"><a class="viewcode-back" href="../vidtrack.html#vidtrack.findBackground">[docs]</a><span class="k">def</span> <span class="nf">findBackground</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">alpha</span><span class="p">):</span>
+
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A basic wrapper for an OpenCV function that creates a static averaged image as the &#39;background&#39;</span>
+<span class="sd">    which will be subtracted out of subsequent frames</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="n">total</span><span class="p">,</span> <span class="n">frame</span> <span class="ow">in</span> <span class="n">frames</span><span class="p">(</span><span class="n">f</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">n</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">avg</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">float32</span><span class="p">(</span><span class="n">frame</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">cv2</span><span class="o">.</span><span class="n">accumulateWeighted</span><span class="p">(</span><span class="n">frame</span><span class="p">,</span> <span class="n">avg</span><span class="p">,</span> <span class="n">alpha</span><span class="p">)</span>
+
+    <span class="n">bg</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">convertScaleAbs</span><span class="p">(</span><span class="n">avg</span><span class="p">)</span>
+    <span class="n">bg</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">cvtColor</span><span class="p">(</span><span class="n">bg</span><span class="p">,</span> <span class="n">cv2</span><span class="o">.</span><span class="n">COLOR_BGR2GRAY</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">bg</span>
+</div>
+<div class="viewcode-block" id="candidatePoints"><a class="viewcode-back" href="../vidtrack.html#vidtrack.candidatePoints">[docs]</a><span class="k">def</span> <span class="nf">candidatePoints</span><span class="p">(</span><span class="n">f</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    For an image file, yields (redPoints, greenPoints) for each frame</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c"># First, find background composite of the whole video</span>
+    <span class="n">bg</span> <span class="o">=</span> <span class="n">findBackground</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="mf">0.01</span><span class="p">)</span>
+    <span class="k">print</span><span class="p">(</span><span class="s">&quot;Finished averaging background frame&quot;</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="n">total</span><span class="p">,</span> <span class="n">frame</span> <span class="ow">in</span> <span class="n">frames</span><span class="p">(</span><span class="n">f</span><span class="p">):</span>
+        <span class="n">frame</span> <span class="o">=</span> <span class="n">frame</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">n</span> <span class="o">%</span> <span class="mi">1000</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">print</span><span class="p">(</span><span class="s">&quot;Processed {} of {}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">total</span><span class="p">))</span>
+        <span class="n">lab</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">cvtColor</span><span class="p">(</span><span class="n">frame</span><span class="p">,</span> <span class="n">cv2</span><span class="o">.</span><span class="n">COLOR_BGR2LAB</span><span class="p">)</span>
+        <span class="n">hsv</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">cvtColor</span><span class="p">(</span><span class="n">frame</span><span class="p">,</span> <span class="n">cv2</span><span class="o">.</span><span class="n">COLOR_BGR2HSV</span><span class="p">)</span>
+
+        <span class="c">#work with the frame in the hsv color color space to better detect red and green</span>
+        <span class="n">hue</span><span class="p">,</span> <span class="n">sat</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">hsv</span><span class="p">)</span>
+        <span class="c">#using the lab color space for a better representation of luminescence and brightness</span>
+        <span class="n">lum</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">lab</span><span class="p">)</span>
+
+        <span class="c">#subtract out the background from the lum color space to find the brightest pixels</span>
+        <span class="n">BGsubtract</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">subtract</span><span class="p">(</span><span class="n">lum</span><span class="p">,</span> <span class="n">bg</span><span class="p">)</span>
+        <span class="n">minVal</span><span class="p">,</span> <span class="n">maxVal</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">minMaxLoc</span><span class="p">(</span><span class="n">BGsubtract</span><span class="p">)</span>
+        <span class="c">#creates a threshold of the brightest 30% of points</span>
+        <span class="n">threshold</span> <span class="o">=</span> <span class="n">interpolate</span><span class="p">(</span><span class="n">minVal</span><span class="p">,</span> <span class="n">maxVal</span><span class="p">,</span> <span class="mf">0.3</span><span class="p">)</span>
+        <span class="n">_</span><span class="p">,</span> <span class="n">fgmask</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">threshold</span><span class="p">(</span><span class="n">BGsubtract</span><span class="p">,</span> <span class="n">threshold</span><span class="p">,</span> <span class="mi">255</span><span class="p">,</span> <span class="n">cv2</span><span class="o">.</span><span class="n">THRESH_BINARY</span><span class="p">)</span>
+
+        <span class="c"># a saturation threshold to detect the &quot;most colorful&quot; pixels</span>
+        <span class="n">smask</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">inRange</span><span class="p">(</span><span class="n">sat</span><span class="p">,</span> <span class="n">SAT_THRESHOLD</span><span class="p">,</span> <span class="mi">255</span><span class="p">)</span>
+
+        <span class="c"># using the saturation mask as well as the forground and brightness maps find the most likely</span>
+        <span class="c"># points for red and greens</span>
+        <span class="n">green</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">inRange</span><span class="p">(</span><span class="n">hue</span><span class="p">,</span> <span class="mi">80</span><span class="p">,</span> <span class="mi">100</span><span class="p">)</span>
+        <span class="n">gmask</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">bitwise_and</span><span class="p">(</span><span class="n">green</span><span class="p">,</span> <span class="n">fgmask</span><span class="p">)</span>
+        <span class="n">gsmask</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">bitwise_and</span><span class="p">(</span><span class="n">gmask</span><span class="p">,</span> <span class="n">smask</span><span class="p">)</span>
+
+        <span class="n">red</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">bitwise_or</span><span class="p">(</span><span class="n">cv2</span><span class="o">.</span><span class="n">inRange</span><span class="p">(</span><span class="n">hue</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">10</span><span class="p">),</span> \
+            <span class="n">cv2</span><span class="o">.</span><span class="n">inRange</span><span class="p">(</span><span class="n">hue</span><span class="p">,</span> <span class="mi">170</span><span class="p">,</span> <span class="mi">180</span><span class="p">))</span>
+        <span class="n">rmask</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">bitwise_and</span><span class="p">(</span><span class="n">red</span><span class="p">,</span> <span class="n">fgmask</span><span class="p">)</span>
+        <span class="n">rsmask</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">bitwise_and</span><span class="p">(</span><span class="n">rmask</span><span class="p">,</span> <span class="n">smask</span><span class="p">)</span>
+
+        <span class="n">bestGreens</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">brightest</span><span class="p">(</span><span class="n">BGsubtract</span><span class="p">,</span> <span class="n">N</span><span class="p">,</span> <span class="n">gsmask</span><span class="p">))</span>
+        <span class="n">bestReds</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">brightest</span><span class="p">(</span><span class="n">BGsubtract</span><span class="p">,</span> <span class="n">N</span><span class="p">,</span> <span class="n">rsmask</span><span class="p">))</span>
+
+        <span class="n">bestReds</span> <span class="o">=</span> <span class="p">[</span><span class="n">r</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">bestReds</span> <span class="k">if</span> <span class="n">minDist</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="n">bestGreens</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">MAX_SEP</span><span class="p">]</span> <span class="k">if</span> <span class="n">bestGreens</span> <span class="k">else</span> <span class="p">[]</span>
+        <span class="n">bestGreens</span> <span class="o">=</span> <span class="p">[</span><span class="n">g</span> <span class="k">for</span> <span class="n">g</span> <span class="ow">in</span> <span class="n">bestGreens</span> <span class="k">if</span> <span class="n">minDist</span><span class="p">(</span><span class="n">g</span><span class="p">,</span> <span class="n">bestReds</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">MAX_SEP</span><span class="p">]</span> <span class="k">if</span> <span class="n">bestReds</span> <span class="k">else</span> <span class="p">[]</span>
+
+        <span class="k">yield</span> <span class="p">(</span><span class="n">bestReds</span><span class="p">,</span> <span class="n">bestGreens</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="findCenters"><a class="viewcode-back" href="../vidtrack.html#vidtrack.findCenters">[docs]</a><span class="k">def</span> <span class="nf">findCenters</span><span class="p">(</span><span class="n">data</span><span class="p">):</span>
+
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    For the (redPoint, greenPoint), finds the center of the two LED&#39;s and returns them as (x, y) coords</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">nopoint</span> <span class="o">=</span> <span class="p">([],</span> <span class="p">[])</span>
+
+    <span class="n">Centers</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">def</span> <span class="nf">centroid</span><span class="p">(</span><span class="n">point</span><span class="p">):</span>
+        <span class="p">(</span><span class="n">pt1</span><span class="p">,</span> <span class="n">pt2</span><span class="p">)</span> <span class="o">=</span> <span class="n">point</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="p">(</span><span class="n">pt1</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">pt2</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">/</span><span class="mi">2</span>
+        <span class="n">y</span> <span class="o">=</span> <span class="p">(</span><span class="n">pt1</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">pt2</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span><span class="o">/</span><span class="mi">2</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="n">g</span><span class="p">)</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="n">g</span><span class="p">)</span> <span class="o">==</span> <span class="p">([],</span> <span class="p">[]):</span>
+            <span class="n">Centers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">nopoint</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">point</span> <span class="o">=</span> <span class="p">(</span><span class="n">r</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">g</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="n">Centers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">centroid</span><span class="p">(</span><span class="n">point</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">Centers</span>
+</div>
+<div class="viewcode-block" id="writeCSV"><a class="viewcode-back" href="../vidtrack.html#vidtrack.writeCSV">[docs]</a><span class="k">def</span> <span class="nf">writeCSV</span><span class="p">(</span><span class="n">data</span><span class="p">):</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s">&#39;coords.csv&#39;</span><span class="p">,</span> <span class="s">&#39;wb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">csvfile</span><span class="p">:</span>
+        <span class="n">coordwriter</span> <span class="o">=</span> <span class="n">csv</span><span class="o">.</span><span class="n">writer</span><span class="p">(</span><span class="n">csvfile</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
+            <span class="n">coordwriter</span><span class="o">.</span><span class="n">writerow</span><span class="p">([</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">])</span>
+</div>
+<div class="viewcode-block" id="reviewCoords"><a class="viewcode-back" href="../vidtrack.html#vidtrack.reviewCoords">[docs]</a><span class="k">def</span> <span class="nf">reviewCoords</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">f</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This simply plays the video back frame by frame superimposing the points from the </span>
+<span class="sd">    rest of the function onto it. It allows the user to click to change the point if it</span>
+<span class="sd">    seems to be deviating too far.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">global</span> <span class="n">corrected</span>
+
+    <span class="k">def</span> <span class="nf">on_mouse</span><span class="p">(</span><span class="n">event</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">flag</span><span class="p">,</span> <span class="n">param</span><span class="p">):</span>
+        <span class="k">if</span><span class="p">(</span><span class="n">event</span><span class="o">==</span><span class="n">cv2</span><span class="o">.</span><span class="n">EVENT_LBUTTONDOWN</span><span class="p">):</span>
+            <span class="k">global</span> <span class="n">newPoint</span><span class="p">,</span> <span class="n">corrected</span>
+            <span class="n">newPoint</span> <span class="o">=</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+            <span class="n">corrected</span> <span class="o">=</span> <span class="bp">True</span>
+            <span class="n">redraw</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">redraw</span><span class="p">():</span>
+        <span class="n">drawFrame</span> <span class="o">=</span> <span class="n">frame</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">point</span> <span class="o">!=</span> <span class="p">([],</span> <span class="p">[]):</span>
+            <span class="n">cv2</span><span class="o">.</span><span class="n">circle</span><span class="p">(</span><span class="n">drawFrame</span><span class="p">,</span> <span class="n">point</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">255</span><span class="p">))</span>
+        <span class="n">cv2</span><span class="o">.</span><span class="n">circle</span><span class="p">(</span><span class="n">drawFrame</span><span class="p">,</span> <span class="n">newPoint</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">255</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+        <span class="n">cv2</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="s">&quot;frame&quot;</span><span class="p">,</span> <span class="n">drawFrame</span><span class="p">)</span>
+
+    <span class="n">cv2</span><span class="o">.</span><span class="n">namedWindow</span><span class="p">(</span><span class="s">&#39;frame&#39;</span><span class="p">)</span>
+    <span class="n">cv2</span><span class="o">.</span><span class="n">setMouseCallback</span><span class="p">(</span><span class="s">&#39;frame&#39;</span><span class="p">,</span> <span class="n">on_mouse</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="n">total</span><span class="p">,</span> <span class="n">frame</span> <span class="ow">in</span> <span class="n">frames</span><span class="p">(</span><span class="n">f</span><span class="p">):</span>
+        <span class="n">corrected</span> <span class="o">=</span> <span class="bp">False</span>
+        <span class="n">point</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">n</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">drawFrame</span> <span class="o">=</span> <span class="n">frame</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">point</span> <span class="o">!=</span> <span class="p">([],</span> <span class="p">[]):</span>
+            <span class="n">cv2</span><span class="o">.</span><span class="n">circle</span><span class="p">(</span><span class="n">drawFrame</span><span class="p">,</span> <span class="n">point</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">255</span><span class="p">))</span>
+        <span class="n">cv2</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="s">&quot;frame&quot;</span><span class="p">,</span> <span class="n">drawFrame</span><span class="p">)</span>
+        <span class="n">cv2</span><span class="o">.</span><span class="n">waitKey</span><span class="p">()</span>
+        <span class="k">if</span><span class="p">(</span><span class="n">corrected</span><span class="p">):</span>
+            <span class="k">print</span><span class="p">(</span><span class="s">&quot;rewrote frame {}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">n</span><span class="p">))</span>
+            <span class="n">data</span><span class="p">[</span><span class="n">n</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">newPoint</span>
+</div>
+<div class="viewcode-block" id="simpleInterpolate"><a class="viewcode-back" href="../vidtrack.html#vidtrack.simpleInterpolate">[docs]</a><span class="k">def</span> <span class="nf">simpleInterpolate</span><span class="p">(</span><span class="n">data</span><span class="p">):</span>
+
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A function to remove outliers and interpolate empty frames from using the surrounding frames</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">EMPTY</span> <span class="o">=</span> <span class="nb">object</span><span class="p">()</span>
+    <span class="n">nopoint</span> <span class="o">=</span> <span class="n">EMPTY</span>
+
+    <span class="k">def</span> <span class="nf">findEmpty</span><span class="p">(</span><span class="n">data</span><span class="p">):</span>
+        <span class="n">noEmpty</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">point</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">point</span> <span class="o">==</span> <span class="p">([],</span> <span class="p">[]):</span>
+                <span class="n">noEmpty</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">nopoint</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">noEmpty</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">point</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">noEmpty</span>
+
+    <span class="k">def</span> <span class="nf">findOutliers</span><span class="p">(</span><span class="n">data</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Finds points that deviate too far from the norm and removes them, &quot;too far&quot; defined</span>
+<span class="sd">        roughly has moving too far from the last known point as a function of how many empty</span>
+<span class="sd">        points exist between the current frame and the frame of the last known point.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">noOutliers</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">lastPoint</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">lastKnown</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="k">for</span> <span class="n">point</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
+
+            <span class="k">if</span> <span class="n">point</span> <span class="ow">is</span> <span class="n">EMPTY</span><span class="p">:</span>
+                <span class="n">lastKnown</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="n">noOutliers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">nopoint</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">dist</span><span class="p">(</span><span class="n">lastPoint</span><span class="p">,</span> <span class="n">point</span><span class="p">)</span> <span class="o">&gt;</span> <span class="p">((</span><span class="n">lastKnown</span> <span class="o">**</span> <span class="mf">0.5</span><span class="p">)</span><span class="o">/</span><span class="mi">2</span> <span class="o">*</span> <span class="n">MAX_EXPECTED_MOVEMENT</span><span class="p">)</span> <span class="ow">or</span> \
+                    <span class="n">dist</span><span class="p">(</span><span class="n">lastPoint</span><span class="p">,</span> <span class="n">point</span><span class="p">)</span> <span class="o">&gt;</span> <span class="p">(</span><span class="n">lastKnown</span> <span class="o">*</span> <span class="n">EXPECTED_MOVEMENT</span><span class="p">):</span> <span class="c">#This might need to be reworked...</span>
+                    <span class="n">noOutliers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">nopoint</span><span class="p">)</span>
+                    <span class="n">lastKnown</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">lastPoint</span> <span class="o">=</span> <span class="n">point</span>
+                    <span class="n">noOutliers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">lastPoint</span><span class="p">)</span>
+                    <span class="n">lastKnown</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="k">return</span> <span class="n">noOutliers</span>
+
+    <span class="k">def</span> <span class="nf">interpolate</span><span class="p">(</span><span class="n">pt1</span><span class="p">,</span> <span class="n">pt2</span><span class="p">,</span> <span class="n">Length</span><span class="p">,</span> <span class="n">preInterpolate</span><span class="p">):</span>
+        <span class="n">Length</span> <span class="o">=</span> <span class="n">Length</span> <span class="o">+</span> <span class="n">preInterpolate</span> <span class="o">-</span> <span class="mi">1</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="p">(</span><span class="n">preInterpolate</span> <span class="o">*</span> <span class="p">(</span><span class="n">pt2</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">pt1</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">/</span><span class="n">Length</span><span class="p">)</span> <span class="o">+</span> <span class="n">pt1</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">y</span> <span class="o">=</span> <span class="p">(</span><span class="n">preInterpolate</span> <span class="o">*</span> <span class="p">(</span><span class="n">pt2</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">pt1</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span><span class="o">/</span><span class="n">Length</span><span class="p">)</span> <span class="o">+</span> <span class="n">pt1</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">newPt</span> <span class="o">=</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">newPt</span>
+
+    <span class="k">def</span> <span class="nf">bookend</span><span class="p">(</span><span class="n">data</span><span class="p">):</span>
+        <span class="c"># I need to ensure that the first and last points are not EMPTY for </span>
+        <span class="c"># fillEmpty() to function properly</span>
+
+        <span class="n">newData</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">firstPoint</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">index</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="k">while</span> <span class="n">firstPoint</span> <span class="o">==</span> <span class="n">EMPTY</span><span class="p">:</span>
+            <span class="n">firstPoint</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">index</span><span class="p">]</span>
+            <span class="n">index</span> <span class="o">+=</span> <span class="mi">1</span>
+
+        <span class="n">newData</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">firstPoint</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)</span><span class="o">-</span><span class="mi">2</span><span class="p">):</span>
+            <span class="n">newData</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+
+        <span class="n">lastPoint</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">index</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)</span><span class="o">-</span><span class="mi">2</span>
+        <span class="k">while</span> <span class="n">lastPoint</span> <span class="o">==</span><span class="n">EMPTY</span><span class="p">:</span>
+            <span class="n">lastPoint</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">index</span><span class="p">]</span>
+            <span class="n">index</span> <span class="o">-=</span> <span class="mi">1</span>
+
+        <span class="n">newData</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">lastPoint</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">newData</span>
+
+    <span class="k">def</span> <span class="nf">fillEmpty</span><span class="p">(</span><span class="n">data</span><span class="p">):</span>
+
+        <span class="n">newData</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)</span><span class="o">-</span><span class="mi">2</span><span class="p">):</span>
+            <span class="n">point</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="n">newPoint</span> <span class="o">=</span> <span class="n">point</span>
+            <span class="n">pPoint</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">i</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+            <span class="n">nPoint</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">point</span> <span class="ow">is</span> <span class="n">EMPTY</span><span class="p">:</span>
+                <span class="n">runLength</span> <span class="o">=</span> <span class="mi">1</span>
+                <span class="k">while</span> <span class="n">nPoint</span> <span class="ow">is</span> <span class="n">EMPTY</span><span class="p">:</span>
+                    <span class="n">nPoint</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="n">runLength</span><span class="p">]</span>
+                    <span class="n">runLength</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="n">preInterpolate</span> <span class="o">=</span> <span class="mi">1</span>
+                <span class="k">while</span> <span class="n">pPoint</span> <span class="ow">is</span> <span class="n">EMPTY</span><span class="p">:</span>
+                    <span class="n">pPoint</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">i</span><span class="o">-</span><span class="n">preInterpolate</span><span class="p">]</span>
+                    <span class="n">preInterpolate</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="n">newPoint</span> <span class="o">=</span> <span class="n">interpolate</span><span class="p">(</span><span class="n">pPoint</span><span class="p">,</span> <span class="n">nPoint</span><span class="p">,</span> <span class="n">runLength</span><span class="p">,</span> <span class="n">preInterpolate</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">newData</span>
+
+    <span class="n">data</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">findEmpty</span><span class="p">(</span><span class="n">data</span><span class="p">))</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">bookend</span><span class="p">(</span><span class="n">data</span><span class="p">))</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">findOutliers</span><span class="p">(</span><span class="n">data</span><span class="p">))</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">bookend</span><span class="p">(</span><span class="n">data</span><span class="p">))</span>
+ 
+    <span class="k">return</span> <span class="n">fillEmpty</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+
+</div>
+<div class="viewcode-block" id="processVideo"><a class="viewcode-back" href="../vidtrack.html#vidtrack.processVideo">[docs]</a><span class="k">def</span> <span class="nf">processVideo</span><span class="p">(</span><span class="n">f</span><span class="p">):</span>
+    <span class="k">print</span><span class="p">(</span><span class="s">&quot;Processing frames...&quot;</span><span class="p">)</span>
+    <span class="n">pts</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">candidatePoints</span><span class="p">(</span><span class="n">f</span><span class="p">))</span>
+
+    <span class="k">print</span><span class="p">(</span><span class="s">&quot;Done processing. Interpolating path...&quot;</span><span class="p">)</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">findCenters</span><span class="p">(</span><span class="n">pts</span><span class="p">))</span>
+    <span class="c">#reviewCoords(data, f)</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">simpleInterpolate</span><span class="p">(</span><span class="n">data</span><span class="p">))</span>
+    <span class="n">writeCSV</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="run"><a class="viewcode-back" href="../vidtrack.html#vidtrack.run">[docs]</a><span class="k">def</span> <span class="nf">run</span><span class="p">():</span>
+    <span class="k">for</span> <span class="n">vid</span> <span class="ow">in</span> <span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">:]:</span>
+        <span class="n">processVideo</span><span class="p">(</span><span class="n">vid</span><span class="p">)</span>
+    <span class="n">cv2</span><span class="o">.</span><span class="n">destroyAllWindows</span><span class="p">()</span>
+
+</div>
+<span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="n">run</span><span class="p">()</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../index.html">Rat-tracker 0.1 documentation</a> &raquo;</li>
+          <li><a href="index.html" >Module code</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &copy; Copyright 2014, Hana.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.3b1.
+    </div>
+  </body>
+</html>

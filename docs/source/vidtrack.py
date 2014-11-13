@@ -56,13 +56,9 @@ def mostColorful(channels, n, channel, bgmask=None):
     Channels should be output of cv2.split(img).
     Returns the locations of the n most pure examples of the specified channel.
     Values for channel number depend on your image format, but usually:
-    
-    - 0 = blue
-    
-    - 1 = green
-    
-    - 2 = red
-    
+        0 = blue
+        1 = green
+        2 = red
     """
     primary = channels[channel]
     others = channels[:channel] + channels[channel+1:]
@@ -351,7 +347,7 @@ def processVideo(f):
 
     print("Done processing. Interpolating path...")
     data = list(findCenters(pts))
-    #reviewCoords(data, f)
+    //reviewCoords(data, f)
     data = list(simpleInterpolate(data))
     writeCSV(data)
 
