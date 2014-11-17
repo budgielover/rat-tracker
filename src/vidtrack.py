@@ -12,6 +12,7 @@ import cv2
 import cv2.cv
 import numpy
 from numpy import unravel_index
+from PyQt4 import QtGui, QtCore
 # Settings
 N = 1
 MAX_SEP = 10
@@ -161,7 +162,7 @@ def candidatePoints(f):
         gmask = cv2.bitwise_and(green, fgmask)
         gsmask = cv2.bitwise_and(gmask, smask)
 
-        red = cv2.bitwise_or(cv2.inRange(hue, 0, 10), \
+        red = cv2.bitwise_or(cv2.inRange(hue, 0, 10), 
             cv2.inRange(hue, 170, 180))
         rmask = cv2.bitwise_and(red, fgmask)
         rsmask = cv2.bitwise_and(rmask, smask)
@@ -185,6 +186,8 @@ def candidatePoints(f):
         prered=bestReds
         pregreen=bestGreens
         yield (bestReds, bestGreens)
+        #print bestReds
+        #print bestGreens
 
 
 
@@ -239,21 +242,45 @@ def reviewCoords(data, f):
             cv2.circle(drawFrame, point, 4, (0, 0, 255))
         cv2.circle(drawFrame, newPoint, 4, (0, 255, 0))
         cv2.imshow("frame", drawFrame)
+    def nothing(x):
+        pass
 
     cv2.namedWindow('frame')
     cv2.setMouseCallback('frame', on_mouse)
 
-    for n, total, frame in frames(f):
+    length=len(data)
+    cap = cv2.VideoCapture(f)
+
+    switch = '1 : OFF+Enter \n0 : ON'
+    cv2.createTrackbar(switch, 'frame',0,1,nothing)
+    num = 'frame number'
+    cv2.createTrackbar(num, 'frame',1,length,nothing)
+
+    n=0
+    preframe=1
+    while n<length:
         corrected = False
-        point = data[n-1]
-        drawFrame = frame.copy()
+        n=n+1
+        point=data[n-1]
+        cap.set(cv2.cv.CV_CAP_PROP_POS_FRAMES,n-1)
+        ret, frame = cap.read()
         if point != ([], []):
-            cv2.circle(drawFrame, point, 4, (0, 0, 255))
-        cv2.imshow("frame", drawFrame)
+            cv2.circle(frame, point, 4, (0, 0, 255))
+        cv2.imshow("frame", frame)
         cv2.waitKey()
         if(corrected):
             print("rewrote frame {}".format(n))
             data[n-1] = newPoint
+        s = cv2.getTrackbarPos(switch,'frame')
+        framenum = cv2.getTrackbarPos(num,'frame')        
+        if s == 1:
+            break
+        if framenum!=preframe:
+            n=framenum-1
+            preframe=framenum       
+    cap.release()
+        
+
 
 def simpleInterpolate(data):
 
@@ -369,14 +396,13 @@ def processVideo(f):
     print("Done processing. Interpolating path...")
     data = list(findCenters(pts))
     reviewCoords(data, f)
-    #by Haoyu
+    #by Jiaqi and Haoyu
     #data = list(simpleInterpolate(data))
     writeCSV(data)
 
 def run():
     for vid in sys.argv[1:]:
         processVideo(vid)
-    processVideo(vid)
     cv2.destroyAllWindows()
 
 
