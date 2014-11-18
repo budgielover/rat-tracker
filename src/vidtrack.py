@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#hana was here
+
 # builtin
 from itertools import islice, izip
 from math import sqrt
@@ -11,7 +11,8 @@ import csv
 import cv2
 import cv2.cv
 import numpy
-
+from numpy import unravel_index
+from PyQt4 import QtGui, QtCore
 # Settings
 N = 1
 MAX_SEP = 10
@@ -20,6 +21,10 @@ EXPECTED_SEP = 7
 EXPECTED_MOVEMENT = 5
 MAX_EXPECTED_MOVEMENT = 20
 SAT_THRESHOLD = 8
+
+JUMP = 600
+SAME = 10
+DIST = 100
 
 ###############################################################################
 
@@ -37,17 +42,22 @@ def frames(videoFile):
         if not ret:
             break
         n += 1
-        yield (n, total, frame)
+        yield (n, total, frame)	
     cap.release()
 
 def brightest(frame, n, bgmask = None):
     """
     Returns the locations of the brightest n spots in the frame
-    This isn't quite working right and I'm not sure why... 
+    This isn't quite working right and I'm not sure why...
     """
     frame = frame.copy()
     for _ in range(0, n):
-        minVal, maxVal, minLoc, maxLoc = cv2.minMaxLoc(frame, bgmask)
+
+        #Haoyu's revise
+        minVal, maxVal, minLoc, maxLoc = cv2.minMaxLoc(frame, None)
+        #previous version: minVal, maxVal, minLoc, maxLoc = cv2.minMaxLoc(frame, bgmask)
+
+        #print frame  
         yield maxLoc
         frame[maxLoc[1], maxLoc[0]] = 0 # so it won't be found next
 
@@ -128,7 +138,6 @@ def candidatePoints(f):
     # First, find background composite of the whole video
     bg = findBackground(f, 0.01)
     print("Finished averaging background frame")
-
     for n, total, frame in frames(f):
         frame = frame.copy()
         if n % 1000 == 0:
@@ -157,18 +166,34 @@ def candidatePoints(f):
         gmask = cv2.bitwise_and(green, fgmask)
         gsmask = cv2.bitwise_and(gmask, smask)
 
-        red = cv2.bitwise_or(cv2.inRange(hue, 0, 10), \
+        red = cv2.bitwise_or(cv2.inRange(hue, 0, 10), 
             cv2.inRange(hue, 170, 180))
         rmask = cv2.bitwise_and(red, fgmask)
         rsmask = cv2.bitwise_and(rmask, smask)
 
         bestGreens = list(brightest(BGsubtract, N, gsmask))
         bestReds = list(brightest(BGsubtract, N, rsmask))
-
         bestReds = [r for r in bestReds if minDist(r, bestGreens) <= MAX_SEP] if bestGreens else []
         bestGreens = [g for g in bestGreens if minDist(g, bestReds) <= MAX_SEP] if bestReds else []
 
+        # Haoyu: rats can not "jump"
+        if n==1:
+            same=0
+        if same < SAME and n > 10 and  pow(bestGreens[0][0]-pregreen[0][0],2)+pow(bestGreens[0][1]-pregreen[0][1],2) > JUMP:
+            bestGreens=pregreen
+        if same < SAME and n > 10 and pow(bestReds[0][0]-prered[0][0],2)+pow(bestReds[0][1]-prered[0][1],2) > JUMP:
+            bestReds=prered
+        if n>10 and bestReds==prered:
+            same=same+1
+        else:
+            same=0
+        prered=bestReds
+        pregreen=bestGreens
         yield (bestReds, bestGreens)
+        #print bestReds
+        #print bestGreens
+
+
 
 def findCenters(data):
 
@@ -202,7 +227,7 @@ def writeCSV(data):
 
 def reviewCoords(data, f):
     """
-    This simply plays the video back frame by frame superimposing the points from the 
+    This simply plays the video back frame by frame superimposing the points from the
     rest of the function onto it. It allows the user to click to change the point if it
     seems to be deviating too far.
     """
@@ -221,21 +246,45 @@ def reviewCoords(data, f):
             cv2.circle(drawFrame, point, 4, (0, 0, 255))
         cv2.circle(drawFrame, newPoint, 4, (0, 255, 0))
         cv2.imshow("frame", drawFrame)
+    def nothing(x):
+        pass
 
     cv2.namedWindow('frame')
     cv2.setMouseCallback('frame', on_mouse)
 
-    for n, total, frame in frames(f):
+    length=len(data)
+    cap = cv2.VideoCapture(f)
+
+    switch = '1 : OFF+Enter \n0 : ON'
+    cv2.createTrackbar(switch, 'frame',0,1,nothing)
+    num = 'frame number'
+    cv2.createTrackbar(num, 'frame',1,length,nothing)
+
+    n=0
+    preframe=1
+    while n<length:
         corrected = False
-        point = data[n-1]
-        drawFrame = frame.copy()
+        n=n+1
+        point=data[n-1]
+        cap.set(cv2.cv.CV_CAP_PROP_POS_FRAMES,n-1)
+        ret, frame = cap.read()
         if point != ([], []):
-            cv2.circle(drawFrame, point, 4, (0, 0, 255))
-        cv2.imshow("frame", drawFrame)
+            cv2.circle(frame, point, 4, (0, 0, 255))
+        cv2.imshow("frame", frame)
         cv2.waitKey()
         if(corrected):
             print("rewrote frame {}".format(n))
             data[n-1] = newPoint
+        s = cv2.getTrackbarPos(switch,'frame')
+        framenum = cv2.getTrackbarPos(num,'frame')        
+        if s == 1:
+            break
+        if framenum!=preframe:
+            n=framenum-1
+            preframe=framenum       
+    cap.release()
+        
+
 
 def simpleInterpolate(data):
 
@@ -290,7 +339,7 @@ def simpleInterpolate(data):
         return newPt
 
     def bookend(data):
-        # I need to ensure that the first and last points are not EMPTY for 
+        # I need to ensure that the first and last points are not EMPTY for
         # fillEmpty() to function properly
 
         newData = []
@@ -341,18 +390,23 @@ def simpleInterpolate(data):
     data = list(bookend(data))
     data = list(findOutliers(data))
     data = list(bookend(data))
- 
+
     return fillEmpty(data)
 
 
 def processVideo(f):
     print("Processing frames...")
     pts = list(candidatePoints(f))
-
     print("Done processing. Interpolating path...")
     data = list(findCenters(pts))
+<<<<<<< HEAD
     #reviewCoords(data, f)
     data = list(simpleInterpolate(data))
+=======
+    reviewCoords(data, f)
+    #by Jiaqi and Haoyu
+    #data = list(simpleInterpolate(data))
+>>>>>>> origin/haoyu's-branch
     writeCSV(data)
 
 def run():
