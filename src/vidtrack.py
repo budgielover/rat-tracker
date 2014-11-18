@@ -262,6 +262,7 @@ def reviewCoords(data, f):
         corrected = False
         n=n+1
         point=data[n-1]
+        cv2.setTrackbarPos(num, 'frame', n)
         cap.set(cv2.cv.CV_CAP_PROP_POS_FRAMES,n-1)
         ret, frame = cap.read()
         if point != ([], []):
