@@ -391,21 +391,42 @@ def simpleInterpolate(data):
     return fillEmpty(data)
 
 
-def processVideo(f):
+def processVideo(f, outputcsv, outputtxt):
     print("Processing frames...")
     pts = list(candidatePoints(f))
     print("Done processing. Interpolating path...")
     data = list(findCenters(pts))
+    
     reviewCoords(data, f)
-    #by Jiaqi and Haoyu
-    #data = list(simpleInterpolate(data))
-    writeCSV(data)
+    if (outputcsv ==1):
+        writeCSV(data)
+    if (outputtxt ==1):
+        numpy.savetxt("data.txt",data, fmt='%i')
 
 def run():
-    for vid in sys.argv[1:]:
-        processVideo(vid)
-    cv2.destroyAllWindows()
-
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--review", help="this is to run the review of the vedio")
+    parser.add_argument("--writecsv", help="this is to give a csv file")
+    parser.add_argument("--writetxt", help="this is to give a txt file")
+    parser.add_argument("--closevidtrack", help="this is to close the vidtrack")
+    args = parser.parse_args()
+    
+    if (args.writecsv !=None):
+        ocsv =1
+    else :
+        ocsv =None
+    if (args.writetxt !=None):
+        otxt=1
+    else :
+        otxt =None
+    if (args.review !=None):
+        for vid in sys.argv[1:]:
+            processVideo(vid, ocsv, otxt)
+            if (args.closevidtrack !=None):
+                cv2.destroyAllWindows()
+        
+    else :
+        print "Please give a command like --review first"
 
 if __name__ == "__main__":
     run()
