@@ -6,13 +6,14 @@ from math import sqrt
 import sys
 import random
 import csv
+import argparse
 
 # 3rd party
 import cv2
 import cv2.cv
 import numpy
 from numpy import unravel_index
-from PyQt4 import QtGui, QtCore
+#from PyQt4 import QtGui, QtCore
 # Settings
 N = 1
 MAX_SEP = 10
@@ -126,7 +127,7 @@ def findBackground(f, alpha):
 
     return bg
 
-def candidatePoints(f):
+def candidatePoints(f, verbose):
     """
     For an image file, yields (redPoints, greenPoints) for each frame
     """
@@ -137,7 +138,10 @@ def candidatePoints(f):
     for n, total, frame in frames(f):
         frame = frame.copy()
         if n % 1000 == 0:
-            print("Processed {} of {}".format(n, total))
+            print("Processed {} of {} frames".format(n, total))
+            if verbose==True:
+                percentage=str(float(n)/total*100)
+                print percentage+ "% complete"
         lab = cv2.cvtColor(frame, cv2.COLOR_BGR2LAB)
         hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 
@@ -221,7 +225,7 @@ def writeCSV(data):
         for x, y in data:
             coordwriter.writerow([x, y])
 
-def reviewCoords(data, f):
+def reviewCoords(data, f, verbose):
     """
     This simply plays the video back frame by frame superimposing the points from the
     rest of the function onto it. It allows the user to click to change the point if it
@@ -269,7 +273,10 @@ def reviewCoords(data, f):
             cv2.circle(frame, point, 4, (0, 0, 255))
         cv2.imshow("frame", frame)
         cv2.waitKey()
-        if(corrected):
+        if(corrected) and verbose:
+            print("rewrote frame {}".format(n)+" from %s to %s".format(point, newPoint))
+            data[n-1] = newPoint
+        elif(corrected):
             print("rewrote frame {}".format(n))
             data[n-1] = newPoint
         s = cv2.getTrackbarPos(switch,'frame')
@@ -391,19 +398,29 @@ def simpleInterpolate(data):
     return fillEmpty(data)
 
 
-def processVideo(f):
+def processVideo(f, verbose):
     print("Processing frames...")
-    pts = list(candidatePoints(f))
+    pts = list(candidatePoints(f, verbose))
     print("Done processing. Interpolating path...")
     data = list(findCenters(pts))
-    reviewCoords(data, f)
+    reviewCoords(data, f, verbose)
     #by Jiaqi and Haoyu
     #data = list(simpleInterpolate(data))
     writeCSV(data)
 
 def run():
-    for vid in sys.argv[1:]:
-        processVideo(vid)
+    
+#    parser = argparse.ArgumentParser()
+#    parser.add_argument("-v", "--verbose", help="Print verbose output", action="store_true")
+#    args=parser.parse_args()
+#    verbose=args.verbose
+    verbose=True
+#    for vid in sys.argv[1]:
+#        print vid
+    vid="samplevid.avi"
+    processVideo(vid, verbose)
+
+    
     cv2.destroyAllWindows()
 
 
