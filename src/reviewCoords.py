@@ -66,7 +66,10 @@ def reviewCoords(data, f):
             cv2.circle(frame, point, 4, (0, 0, 255))
         cv2.imshow("frame", frame)
         cv2.waitKey()
-        if(corrected):
+        if(corrected) and verbose:
+            print("rewrote frame {}".format(n)+" from %s to %s".format(point, newPoint))
+            data[n-1] = newPoint
+        elif(corrected):
             print("rewrote frame {}".format(n))
             data[n-1] = newPoint
         s = cv2.getTrackbarPos(switch,'frame')
@@ -96,4 +99,5 @@ def run():
     
 if __name__ == "__main__":
     run()
-        
+
+

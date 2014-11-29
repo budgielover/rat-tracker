@@ -12,8 +12,13 @@ import argparse
 import cv2
 import cv2.cv
 import numpy
+<<<<<<< HEAD
 
 # Settings
+=======
+from numpy import unravel_index
+
+>>>>>>> origin/hana's-branch2
 N = 1
 MAX_SEP = 10
 
@@ -52,15 +57,11 @@ def brightest(frame, n, bgmask = None):
     """
     frame = frame.copy()
     for _ in range(0, n):
-
-        #Haoyu's revise
         minVal, maxVal, minLoc, maxLoc = cv2.minMaxLoc(frame, None)
-        #previous version: minVal, maxVal, minLoc, maxLoc = cv2.minMaxLoc(frame, bgmask)
-
-        #print frame  
-        yield maxLoc
+        yield maxLoc        
         frame[maxLoc[1], maxLoc[0]] = 0 # so it won't be found next
 
+<<<<<<< HEAD
         #minVal, maxVal, minLoc1, maxLoc1 = cv2.minMaxLoc(frame, None)
         #if pow(maxLoc[0]-maxLoc1[0],2)+pow(maxLoc[1]-maxLoc1[1],2) < DIST :
         #    yield maxLoc
@@ -81,21 +82,11 @@ def mostColorful(channels, n, channel, bgmask=None):
     for other in others:
         primary = cv2.addWeighted(primary, 1, other, -0.5, 0)
     return brightest(primary, n, bgmask)
+=======
+>>>>>>> origin/hana's-branch2
 
 def interpolate(x, y, alpha):
     return x * (1 - alpha) + y * alpha
-
-def simpleComponents(img):
-    """
-    input: b/w image
-    output: generator of (pos, area) tuples
-    """
-    blobs, _ = cv2.findContours(img.copy(), cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
-    for blob in blobs:
-        area = cv2.contourArea(blob)
-        center, radius = cv2.minEnclosingCircle(blob)
-        if area > 0:
-            yield (center, area)
 
 def dist(pt1, pt2):
     dx = pt1[0] - pt2[0]
@@ -106,14 +97,6 @@ def dist(pt1, pt2):
 def minDist(pt, pts):
     return min(dist(pt, p) for p in pts)
 
-def countChannel(img, pt, radius, channel):
-    count = 0
-    for x in range(pt[0] - radius, pt[0] + radius + 1):
-        for y in range(pt[1] - radius, pt[1] + radius + 1):
-            d = dist((x, y), pt)
-            if d <= radius and x > 0 and y > 0 and x < img.shape[0] and y < img.shape[1]:
-                count += img[x,y][channel]
-    return count
 
 def findBackground(f, alpha):
 
@@ -133,7 +116,7 @@ def findBackground(f, alpha):
 
     return bg
 
-def candidatePoints(f):
+def candidatePoints(f, verbose):
     """
     For an image file, yields (redPoints, greenPoints) for each frame
     """
@@ -144,7 +127,10 @@ def candidatePoints(f):
     for n, total, frame in frames(f):
         frame = frame.copy()
         if n % 1000 == 0:
-            print("Processed {} of {}".format(n, total))
+            print("Processed {} of {} frames".format(n, total))
+            if verbose==True:
+                percentage=str(float(n)/total*100)
+                print percentage+ "% complete"
         lab = cv2.cvtColor(frame, cv2.COLOR_BGR2LAB)
         hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 
@@ -179,7 +165,7 @@ def candidatePoints(f):
         #bestReds = [r for r in bestReds if minDist(r, bestGreens) <= MAX_SEP] if bestGreens else []
         #bestGreens = [g for g in bestGreens if minDist(g, bestReds) <= MAX_SEP] if bestReds else []
 
-        # Haoyu: rats can not "jump"
+        #rats can not "jump"
         if n==1:
             same=0
         if same < SAME and n > 10 and  pow(bestGreens[0][0]-pregreen[0][0],2)+pow(bestGreens[0][1]-pregreen[0][1],2) > JUMP:
@@ -193,7 +179,10 @@ def candidatePoints(f):
         prered=bestReds
         pregreen=bestGreens
         yield (bestReds, bestGreens)
+<<<<<<< HEAD
 
+=======
+>>>>>>> origin/hana's-branch2
 
 
 def findCenters(data):
@@ -201,7 +190,6 @@ def findCenters(data):
     """
     For the (redPoint, greenPoint), finds the center of the two LED's and returns them as (x, y) coords
     """
-
     nopoint = ([], [])
 
     Centers = []
@@ -227,6 +215,7 @@ def writeCSV(data):
             coordwriter.writerow([x, y])
     
 
+<<<<<<< HEAD
 def reviewCoords(data, f):
     """
     This simply plays the video back frame by frame superimposing the points from the
@@ -264,6 +253,8 @@ def reviewCoords(data, f):
             print("rewrote frame {}".format(n))
             data[n-1] = newPoint
 
+=======
+>>>>>>> origin/hana's-branch2
 def simpleInterpolate(data):
 
     """
@@ -372,20 +363,31 @@ def simpleInterpolate(data):
     return fillEmpty(data)
 
 
+<<<<<<< HEAD
 def processVideo(f, outputcsv, outputtxt):
+=======
+def processVideo(f, verbose):
+>>>>>>> origin/hana's-branch2
     print("Processing frames...")
-    pts = list(candidatePoints(f))
+    pts = list(candidatePoints(f, verbose))
     print("Done processing. Interpolating path...")
     data = list(findCenters(pts))
+<<<<<<< HEAD
     reviewCoords(data, f)
     print data
     if (outputcsv ==1):
         writeCSV(data)
     if (outputtxt ==1):
         numpy.savetxt("data.txt",data, fmt='%i')
+=======
+
+
+    writeCSV(data)
+>>>>>>> origin/hana's-branch2
 
             
 def run():
+<<<<<<< HEAD
     parser = argparse.ArgumentParser()
     parser.add_argument("video", nargs="*", default="test.avi")
     parser.add_argument("--review", help="this is to run the review of the vedio")
@@ -412,6 +414,21 @@ def run():
     else :
         print "Please give a command like --review first"
  
+=======
+    
+#    parser = argparse.ArgumentParser()
+#    parser.add_argument("-v", "--verbose", help="Print verbose output", action="store_true")
+#    args=parser.parse_args()
+#    verbose=args.verbose
+    verbose=True
+#    for vid in sys.argv[1]:
+#        print vid
+    vid="samplevid.avi"
+    processVideo(vid, verbose)
+
+    
+    cv2.destroyAllWindows()
+>>>>>>> origin/hana's-branch2
 
 if __name__ == "__main__":
     run()
