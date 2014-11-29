@@ -21,7 +21,7 @@ def writeCSV(data, file):
 
 def reviewCoords(data, f):
     """
-    This simply plays the video back frame by frame superimposing the points from the
+    This plays the video back frame by frame superimposing the points from the
     rest of the function onto it. It allows the user to click to change the point if it
     seems to be deviating too far.
     """
