@@ -6,13 +6,13 @@ from math import sqrt
 import sys
 import random
 import csv
+import argparse
 
 # 3rd party
 import cv2
 import cv2.cv
 import numpy
-from numpy import unravel_index
-from PyQt4 import QtGui, QtCore
+
 # Settings
 N = 1
 MAX_SEP = 10
@@ -61,6 +61,12 @@ def brightest(frame, n, bgmask = None):
         yield maxLoc
         frame[maxLoc[1], maxLoc[0]] = 0 # so it won't be found next
 
+        #minVal, maxVal, minLoc1, maxLoc1 = cv2.minMaxLoc(frame, None)
+        #if pow(maxLoc[0]-maxLoc1[0],2)+pow(maxLoc[1]-maxLoc1[1],2) < DIST :
+        #    yield maxLoc
+        #else :
+        #    yield (1,1)
+
 def mostColorful(channels, n, channel, bgmask=None):
     """
     Channels should be output of cv2.split(img).
@@ -95,7 +101,8 @@ def dist(pt1, pt2):
     dx = pt1[0] - pt2[0]
     dy = pt1[1] - pt2[1]
     return sqrt(dx**2 + dy**2)
-
+    print pt1
+    
 def minDist(pt, pts):
     return min(dist(pt, p) for p in pts)
 
@@ -162,15 +169,15 @@ def candidatePoints(f):
         gmask = cv2.bitwise_and(green, fgmask)
         gsmask = cv2.bitwise_and(gmask, smask)
 
-        red = cv2.bitwise_or(cv2.inRange(hue, 0, 10), 
+        red = cv2.bitwise_or(cv2.inRange(hue, 0, 10), \
             cv2.inRange(hue, 170, 180))
         rmask = cv2.bitwise_and(red, fgmask)
         rsmask = cv2.bitwise_and(rmask, smask)
 
         bestGreens = list(brightest(BGsubtract, N, gsmask))
         bestReds = list(brightest(BGsubtract, N, rsmask))
-        bestReds = [r for r in bestReds if minDist(r, bestGreens) <= MAX_SEP] if bestGreens else []
-        bestGreens = [g for g in bestGreens if minDist(g, bestReds) <= MAX_SEP] if bestReds else []
+        #bestReds = [r for r in bestReds if minDist(r, bestGreens) <= MAX_SEP] if bestGreens else []
+        #bestGreens = [g for g in bestGreens if minDist(g, bestReds) <= MAX_SEP] if bestReds else []
 
         # Haoyu: rats can not "jump"
         if n==1:
@@ -186,8 +193,6 @@ def candidatePoints(f):
         prered=bestReds
         pregreen=bestGreens
         yield (bestReds, bestGreens)
-        #print bestReds
-        #print bestGreens
 
 
 
@@ -200,7 +205,7 @@ def findCenters(data):
     nopoint = ([], [])
 
     Centers = []
-
+ 
     def centroid(point):
         (pt1, pt2) = point
         x = (pt1[0] + pt2[0])/2
@@ -220,6 +225,7 @@ def writeCSV(data):
         coordwriter = csv.writer(csvfile)
         for x, y in data:
             coordwriter.writerow([x, y])
+    
 
 def reviewCoords(data, f):
     """
@@ -242,46 +248,21 @@ def reviewCoords(data, f):
             cv2.circle(drawFrame, point, 4, (0, 0, 255))
         cv2.circle(drawFrame, newPoint, 4, (0, 255, 0))
         cv2.imshow("frame", drawFrame)
-    def nothing(x):
-        pass
 
     cv2.namedWindow('frame')
     cv2.setMouseCallback('frame', on_mouse)
 
-    length=len(data)
-    cap = cv2.VideoCapture(f)
-
-    switch = '1 : OFF+Enter \n0 : ON'
-    cv2.createTrackbar(switch, 'frame',0,1,nothing)
-    num = 'frame number'
-    cv2.createTrackbar(num, 'frame',1,length,nothing)
-
-    n=0
-    preframe=1
-    while n<length:
+    for n, total, frame in frames(f):
         corrected = False
-        n=n+1
-        point=data[n-1]
-        cv2.setTrackbarPos(num, 'frame', n)
-        cap.set(cv2.cv.CV_CAP_PROP_POS_FRAMES,n-1)
-        ret, frame = cap.read()
+        point = data[n-1]
+        drawFrame = frame.copy()
         if point != ([], []):
-            cv2.circle(frame, point, 4, (0, 0, 255))
-        cv2.imshow("frame", frame)
+            cv2.circle(drawFrame, point, 4, (0, 0, 255))
+        cv2.imshow("frame", drawFrame)
         cv2.waitKey()
         if(corrected):
             print("rewrote frame {}".format(n))
             data[n-1] = newPoint
-        s = cv2.getTrackbarPos(switch,'frame')
-        framenum = cv2.getTrackbarPos(num,'frame')        
-        if s == 1:
-            break
-        if framenum!=preframe:
-            n=framenum-1
-            preframe=framenum       
-    cap.release()
-        
-
 
 def simpleInterpolate(data):
 
@@ -396,20 +377,23 @@ def processVideo(f, outputcsv, outputtxt):
     pts = list(candidatePoints(f))
     print("Done processing. Interpolating path...")
     data = list(findCenters(pts))
-    
     reviewCoords(data, f)
+    print data
     if (outputcsv ==1):
         writeCSV(data)
     if (outputtxt ==1):
         numpy.savetxt("data.txt",data, fmt='%i')
 
+            
 def run():
     parser = argparse.ArgumentParser()
+    parser.add_argument("video", nargs="*", default="test.avi")
     parser.add_argument("--review", help="this is to run the review of the vedio")
     parser.add_argument("--writecsv", help="this is to give a csv file")
     parser.add_argument("--writetxt", help="this is to give a txt file")
     parser.add_argument("--closevidtrack", help="this is to close the vidtrack")
     args = parser.parse_args()
+    print args
     
     if (args.writecsv !=None):
         ocsv =1
@@ -420,13 +404,16 @@ def run():
     else :
         otxt =None
     if (args.review !=None):
-        for vid in sys.argv[1:]:
-            processVideo(vid, ocsv, otxt)
+            for vid in args.video:
+                processVideo(vid, ocsv, otxt)
             if (args.closevidtrack !=None):
                 cv2.destroyAllWindows()
         
     else :
         print "Please give a command like --review first"
+ 
 
 if __name__ == "__main__":
     run()
+
+
