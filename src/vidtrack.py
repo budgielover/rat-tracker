@@ -13,8 +13,12 @@ import cv2
 import cv2.cv
 import numpy
 from numpy import unravel_index
+<<<<<<< HEAD
 #from PyQt4 import QtGui, QtCore
 # Settings
+=======
+
+>>>>>>> origin/haoyu's-branch
 N = 1
 MAX_SEP = 10
 
@@ -53,44 +57,13 @@ def brightest(frame, n, bgmask = None):
     """
     frame = frame.copy()
     for _ in range(0, n):
-
-        #Haoyu's revise
         minVal, maxVal, minLoc, maxLoc = cv2.minMaxLoc(frame, None)
-        #previous version: minVal, maxVal, minLoc, maxLoc = cv2.minMaxLoc(frame, bgmask)
-
-        #print frame  
-        yield maxLoc
+        yield maxLoc        
         frame[maxLoc[1], maxLoc[0]] = 0 # so it won't be found next
 
-def mostColorful(channels, n, channel, bgmask=None):
-    """
-    Channels should be output of cv2.split(img).
-    Returns the locations of the n most pure examples of the specified channel.
-    Values for channel number depend on your image format, but usually:
-        0 = blue
-        1 = green
-        2 = red
-    """
-    primary = channels[channel]
-    others = channels[:channel] + channels[channel+1:]
-    for other in others:
-        primary = cv2.addWeighted(primary, 1, other, -0.5, 0)
-    return brightest(primary, n, bgmask)
 
 def interpolate(x, y, alpha):
     return x * (1 - alpha) + y * alpha
-
-def simpleComponents(img):
-    """
-    input: b/w image
-    output: generator of (pos, area) tuples
-    """
-    blobs, _ = cv2.findContours(img.copy(), cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
-    for blob in blobs:
-        area = cv2.contourArea(blob)
-        center, radius = cv2.minEnclosingCircle(blob)
-        if area > 0:
-            yield (center, area)
 
 def dist(pt1, pt2):
     dx = pt1[0] - pt2[0]
@@ -100,14 +73,6 @@ def dist(pt1, pt2):
 def minDist(pt, pts):
     return min(dist(pt, p) for p in pts)
 
-def countChannel(img, pt, radius, channel):
-    count = 0
-    for x in range(pt[0] - radius, pt[0] + radius + 1):
-        for y in range(pt[1] - radius, pt[1] + radius + 1):
-            d = dist((x, y), pt)
-            if d <= radius and x > 0 and y > 0 and x < img.shape[0] and y < img.shape[1]:
-                count += img[x,y][channel]
-    return count
 
 def findBackground(f, alpha):
 
@@ -176,7 +141,7 @@ def candidatePoints(f, verbose):
         bestReds = [r for r in bestReds if minDist(r, bestGreens) <= MAX_SEP] if bestGreens else []
         bestGreens = [g for g in bestGreens if minDist(g, bestReds) <= MAX_SEP] if bestReds else []
 
-        # Haoyu: rats can not "jump"
+        #rats can not "jump"
         if n==1:
             same=0
         if same < SAME and n > 10 and  pow(bestGreens[0][0]-pregreen[0][0],2)+pow(bestGreens[0][1]-pregreen[0][1],2) > JUMP:
@@ -190,9 +155,6 @@ def candidatePoints(f, verbose):
         prered=bestReds
         pregreen=bestGreens
         yield (bestReds, bestGreens)
-        #print bestReds
-        #print bestGreens
-
 
 
 def findCenters(data):
@@ -200,7 +162,6 @@ def findCenters(data):
     """
     For the (redPoint, greenPoint), finds the center of the two LED's and returns them as (x, y) coords
     """
-
     nopoint = ([], [])
 
     Centers = []
@@ -224,6 +185,7 @@ def writeCSV(data):
         coordwriter = csv.writer(csvfile)
         for x, y in data:
             coordwriter.writerow([x, y])
+<<<<<<< HEAD
 
 def reviewCoords(data, f, verbose):
     """
@@ -399,13 +361,21 @@ def simpleInterpolate(data):
 
 
 def processVideo(f, verbose):
+=======
+        
+
+def processVideo(f):
+>>>>>>> origin/haoyu's-branch
     print("Processing frames...")
     pts = list(candidatePoints(f, verbose))
     print("Done processing. Interpolating path...")
     data = list(findCenters(pts))
+<<<<<<< HEAD
     reviewCoords(data, f, verbose)
     #by Jiaqi and Haoyu
     #data = list(simpleInterpolate(data))
+=======
+>>>>>>> origin/haoyu's-branch
     writeCSV(data)
 
 def run():
@@ -422,7 +392,6 @@ def run():
 
     
     cv2.destroyAllWindows()
-
 
 if __name__ == "__main__":
     run()
