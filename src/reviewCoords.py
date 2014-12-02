@@ -19,7 +19,7 @@ def writeCSV(data, file):
         for x, y in data:
             coordwriter.writerow([x, y])
 
-def reviewCoords(data, f):
+def reviewCoords(data, f,verbose):
     """
     This plays the video back frame by frame superimposing the points from the
     rest of the function onto it. It allows the user to click to change the point if it
@@ -93,7 +93,8 @@ def run():
     with open(str(sys.argv[1])) as csvfile:
         data = [(int(x), int(y)) for x, y in csv.reader(csvfile, delimiter= ',')]
     print data
-    reviewCoords(data, str(sys.argv[2]))
+    verbose=True
+    reviewCoords(data, str(sys.argv[2]),verbose)
     writeCSV(data, str(sys.argv[1]))
     cv2.destroyAllWindows()
     
