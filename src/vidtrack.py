@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#
+
 # builtin
 from itertools import islice, izip
 from math import sqrt
@@ -12,13 +12,8 @@ import argparse
 import cv2
 import cv2.cv
 import numpy
-<<<<<<< HEAD
 
 # Settings
-=======
-from numpy import unravel_index
-
->>>>>>> origin/hana's-branch2
 N = 1
 MAX_SEP = 10
 
@@ -59,31 +54,8 @@ def brightest(frame, n, bgmask = None):
     for _ in range(0, n):
         minVal, maxVal, minLoc, maxLoc = cv2.minMaxLoc(frame, None)
         yield maxLoc        
-        frame[maxLoc[1], maxLoc[0]] = 0 # so it won't be found next
+        frame[maxLoc[1], maxLoc[0]] = 0 
 
-<<<<<<< HEAD
-        #minVal, maxVal, minLoc1, maxLoc1 = cv2.minMaxLoc(frame, None)
-        #if pow(maxLoc[0]-maxLoc1[0],2)+pow(maxLoc[1]-maxLoc1[1],2) < DIST :
-        #    yield maxLoc
-        #else :
-        #    yield (1,1)
-
-def mostColorful(channels, n, channel, bgmask=None):
-    """
-    Channels should be output of cv2.split(img).
-    Returns the locations of the n most pure examples of the specified channel.
-    Values for channel number depend on your image format, but usually:
-        0 = blue
-        1 = green
-        2 = red
-    """
-    primary = channels[channel]
-    others = channels[:channel] + channels[channel+1:]
-    for other in others:
-        primary = cv2.addWeighted(primary, 1, other, -0.5, 0)
-    return brightest(primary, n, bgmask)
-=======
->>>>>>> origin/hana's-branch2
 
 def interpolate(x, y, alpha):
     return x * (1 - alpha) + y * alpha
@@ -92,8 +64,7 @@ def dist(pt1, pt2):
     dx = pt1[0] - pt2[0]
     dy = pt1[1] - pt2[1]
     return sqrt(dx**2 + dy**2)
-    print pt1
-    
+
 def minDist(pt, pts):
     return min(dist(pt, p) for p in pts)
 
@@ -113,10 +84,9 @@ def findBackground(f, alpha):
 
     bg = cv2.convertScaleAbs(avg)
     bg = cv2.cvtColor(bg, cv2.COLOR_BGR2GRAY)
-
     return bg
 
-def candidatePoints(f, verbose):
+def candidatePoints(f):
     """
     For an image file, yields (redPoints, greenPoints) for each frame
     """
@@ -127,10 +97,7 @@ def candidatePoints(f, verbose):
     for n, total, frame in frames(f):
         frame = frame.copy()
         if n % 1000 == 0:
-            print("Processed {} of {} frames".format(n, total))
-            if verbose==True:
-                percentage=str(float(n)/total*100)
-                print percentage+ "% complete"
+            print("Processed {} of {}".format(n, total))
         lab = cv2.cvtColor(frame, cv2.COLOR_BGR2LAB)
         hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 
@@ -155,23 +122,25 @@ def candidatePoints(f, verbose):
         gmask = cv2.bitwise_and(green, fgmask)
         gsmask = cv2.bitwise_and(gmask, smask)
 
-        red = cv2.bitwise_or(cv2.inRange(hue, 0, 10), \
+        red = cv2.bitwise_or(cv2.inRange(hue, 0, 10), 
             cv2.inRange(hue, 170, 180))
         rmask = cv2.bitwise_and(red, fgmask)
         rsmask = cv2.bitwise_and(rmask, smask)
 
         bestGreens = list(brightest(BGsubtract, N, gsmask))
         bestReds = list(brightest(BGsubtract, N, rsmask))
-        #bestReds = [r for r in bestReds if minDist(r, bestGreens) <= MAX_SEP] if bestGreens else []
-        #bestGreens = [g for g in bestGreens if minDist(g, bestReds) <= MAX_SEP] if bestReds else []
+        bestReds = [r for r in bestReds if minDist(r, bestGreens) <= MAX_SEP] if bestGreens else []
+        bestGreens = [g for g in bestGreens if minDist(g, bestReds) <= MAX_SEP] if bestReds else []
 
         #rats can not "jump"
         if n==1:
             same=0
-        if same < SAME and n > 10 and  pow(bestGreens[0][0]-pregreen[0][0],2)+pow(bestGreens[0][1]-pregreen[0][1],2) > JUMP:
-            bestGreens=pregreen
-        if same < SAME and n > 10 and pow(bestReds[0][0]-prered[0][0],2)+pow(bestReds[0][1]-prered[0][1],2) > JUMP:
-            bestReds=prered
+        if same < SAME and n > 10:
+            if pow(bestGreens[0][0]-pregreen[0][0],2)+pow(bestGreens[0][1]-pregreen[0][1],2) > JUMP:
+                bestGreens=pregreen
+        if same < SAME and n > 10:
+            if pow(bestReds[0][0]-prered[0][0],2)+pow(bestReds[0][1]-prered[0][1],2) > JUMP:
+                bestReds=prered
         if n>10 and bestReds==prered:
             same=same+1
         else:
@@ -179,10 +148,6 @@ def candidatePoints(f, verbose):
         prered=bestReds
         pregreen=bestGreens
         yield (bestReds, bestGreens)
-<<<<<<< HEAD
-
-=======
->>>>>>> origin/hana's-branch2
 
 
 def findCenters(data):
@@ -193,7 +158,7 @@ def findCenters(data):
     nopoint = ([], [])
 
     Centers = []
- 
+
     def centroid(point):
         (pt1, pt2) = point
         x = (pt1[0] + pt2[0])/2
@@ -208,229 +173,51 @@ def findCenters(data):
             Centers.append(centroid(point))
     return Centers
 
-def writeCSV(data):
-    with open('coords.csv', 'wb') as csvfile:
+def writeCSV(data, name):
+    with open(name, 'wb') as csvfile:
         coordwriter = csv.writer(csvfile)
         for x, y in data:
             coordwriter.writerow([x, y])
-    
-
-<<<<<<< HEAD
-def reviewCoords(data, f):
-    """
-    This simply plays the video back frame by frame superimposing the points from the
-    rest of the function onto it. It allows the user to click to change the point if it
-    seems to be deviating too far.
-    """
-    global corrected
-
-    def on_mouse(event, x, y, flag, param):
-        if(event==cv2.EVENT_LBUTTONDOWN):
-            global newPoint, corrected
-            newPoint = (x, y)
-            corrected = True
-            redraw()
-
-    def redraw():
-        drawFrame = frame.copy()
-        if point != ([], []):
-            cv2.circle(drawFrame, point, 4, (0, 0, 255))
-        cv2.circle(drawFrame, newPoint, 4, (0, 255, 0))
-        cv2.imshow("frame", drawFrame)
-
-    cv2.namedWindow('frame')
-    cv2.setMouseCallback('frame', on_mouse)
-
-    for n, total, frame in frames(f):
-        corrected = False
-        point = data[n-1]
-        drawFrame = frame.copy()
-        if point != ([], []):
-            cv2.circle(drawFrame, point, 4, (0, 0, 255))
-        cv2.imshow("frame", drawFrame)
-        cv2.waitKey()
-        if(corrected):
-            print("rewrote frame {}".format(n))
-            data[n-1] = newPoint
-
-=======
->>>>>>> origin/hana's-branch2
-def simpleInterpolate(data):
-
-    """
-    A function to remove outliers and interpolate empty frames from using the surrounding frames
-    """
-
-    EMPTY = object()
-    nopoint = EMPTY
-
-    def findEmpty(data):
-        noEmpty = []
-        for point in data:
-            if point == ([], []):
-                noEmpty.append(nopoint)
-            else:
-                noEmpty.append(point)
-        return noEmpty
-
-    def findOutliers(data):
-        """
-        Finds points that deviate too far from the norm and removes them, "too far" defined
-        roughly has moving too far from the last known point as a function of how many empty
-        points exist between the current frame and the frame of the last known point.
-        """
-        noOutliers = []
-        lastPoint = data[0]
-        lastKnown = 0
-
-        for point in data:
-
-            if point is EMPTY:
-                lastKnown += 1
-                noOutliers.append(nopoint)
-            else:
-                if dist(lastPoint, point) > ((lastKnown ** 0.5)/2 * MAX_EXPECTED_MOVEMENT) or \
-                    dist(lastPoint, point) > (lastKnown * EXPECTED_MOVEMENT): #This might need to be reworked...
-                    noOutliers.append(nopoint)
-                    lastKnown += 1
-                else:
-                    lastPoint = point
-                    noOutliers.append(lastPoint)
-                    lastKnown = 0
-
-        return noOutliers
-
-    def interpolate(pt1, pt2, Length, preInterpolate):
-        Length = Length + preInterpolate - 1
-        x = (preInterpolate * (pt2[0] - pt1[0])/Length) + pt1[0]
-        y = (preInterpolate * (pt2[1] - pt1[1])/Length) + pt1[1]
-        newPt = (x, y)
-        return newPt
-
-    def bookend(data):
-        # I need to ensure that the first and last points are not EMPTY for
-        # fillEmpty() to function properly
-
-        newData = []
-        firstPoint = data[0]
-        index = 1
-        while firstPoint == EMPTY:
-            firstPoint = data[index]
-            index += 1
-
-        newData.append(firstPoint)
-
-        for i in range(1,len(data)-2):
-            newData.append(data[i])
-
-        lastPoint = data[len(data)-1]
-        index = len(data)-2
-        while lastPoint ==EMPTY:
-            lastPoint = data[index]
-            index -= 1
-
-        newData.append(lastPoint)
-
-        return newData
-
-    def fillEmpty(data):
-
-        newData = []
-
-        for i in range(1,len(data)-2):
-            point = data[i]
-            newPoint = point
-            pPoint = data[i-1]
-            nPoint = data[i+1]
-            if point is EMPTY:
-                runLength = 1
-                while nPoint is EMPTY:
-                    nPoint = data[i+runLength]
-                    runLength += 1
-                preInterpolate = 1
-                while pPoint is EMPTY:
-                    pPoint = data[i-preInterpolate]
-                    preInterpolate += 1
-                newPoint = interpolate(pPoint, nPoint, runLength, preInterpolate)
-
-        return newData
-
-    data = list(findEmpty(data))
-    data = list(bookend(data))
-    data = list(findOutliers(data))
-    data = list(bookend(data))
-
-    return fillEmpty(data)
 
 
-<<<<<<< HEAD
-def processVideo(f, outputcsv, outputtxt):
-=======
-def processVideo(f, verbose):
->>>>>>> origin/hana's-branch2
+def processVideo(f, outputtype,name):
     print("Processing frames...")
-    pts = list(candidatePoints(f, verbose))
+    pts = list(candidatePoints(f))
     print("Done processing. Interpolating path...")
     data = list(findCenters(pts))
-<<<<<<< HEAD
-    reviewCoords(data, f)
-    print data
-    if (outputcsv ==1):
-        writeCSV(data)
-    if (outputtxt ==1):
-        numpy.savetxt("data.txt",data, fmt='%i')
-=======
+    if (outputtype == 1):
+        writeCSV(data,name)
+    if (outputtype == 2):
+        numpy.savetxt(name,data, fmt='%i')
 
 
-    writeCSV(data)
->>>>>>> origin/hana's-branch2
-
-            
 def run():
-<<<<<<< HEAD
     parser = argparse.ArgumentParser()
     parser.add_argument("video", nargs="*", default="test.avi")
-    parser.add_argument("--review", help="this is to run the review of the vedio")
-    parser.add_argument("--writecsv", help="this is to give a csv file")
-    parser.add_argument("--writetxt", help="this is to give a txt file")
-    parser.add_argument("--closevidtrack", help="this is to close the vidtrack")
+    parser.add_argument("--write", default = "csv", help="this is to give a csv file")
     args = parser.parse_args()
-    print args
-    
-    if (args.writecsv !=None):
-        ocsv =1
+    if args.write == "csv":
+        otype = 1
+        filetype = ".csv"
+        enableprocess = 1
+    elif args.write == "txt":
+        otype = 2
+        filetype= ".txt"
+        enableprocess = 1
     else :
-        ocsv =None
-    if (args.writetxt !=None):
-        otxt=1
+        otype = None
+        filetype = ".csv"
+        enableprocess = 0
+        print "Please give a valid file type after \"--write\"."
+    if enableprocess == 1:
+        vidnum = len(args.video)
+        for i in range(0, vidnum):
+            a = args.video[i].find(".")
+            filename = args.video[i][:a]
+            processVideo(args.video[i], otype, filename+filetype)
     else :
-        otxt =None
-    if (args.review !=None):
-            for vid in args.video:
-                processVideo(vid, ocsv, otxt)
-            if (args.closevidtrack !=None):
-                cv2.destroyAllWindows()
-        
-    else :
-        print "Please give a command like --review first"
+        exit (0)
+
  
-=======
-    
-#    parser = argparse.ArgumentParser()
-#    parser.add_argument("-v", "--verbose", help="Print verbose output", action="store_true")
-#    args=parser.parse_args()
-#    verbose=args.verbose
-    verbose=True
-#    for vid in sys.argv[1]:
-#        print vid
-    vid="samplevid.avi"
-    processVideo(vid, verbose)
-
-    
-    cv2.destroyAllWindows()
->>>>>>> origin/hana's-branch2
-
 if __name__ == "__main__":
     run()
-
-
