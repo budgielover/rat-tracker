@@ -87,7 +87,7 @@ def findBackground(f, alpha):
 
     return bg
 
-def candidatePoints(f, verbose):
+def candidatePoints(f, verbose):#added verbose variable to be passed to function
     """
     For an image file, yields (redPoints, greenPoints) for each frame
     """
@@ -99,6 +99,7 @@ def candidatePoints(f, verbose):
         frame = frame.copy()
         if n % 1000 == 0:
             print("Processed {} of {} frames".format(n, total))
+            #prints out percentage of frames complete if verbose==True
             if verbose==True:
                 percentage=str(float(n)/total*100)
                 print percentage+ "% complete"
@@ -175,8 +176,8 @@ def findCenters(data):
             Centers.append(centroid(point))
     return Centers
 
-def writeCSV(data):
-    with open('coords.csv', 'wb') as csvfile:
+def writeCSV(data, name):
+    with open(name, 'wb') as csvfile:
         coordwriter = csv.writer(csvfile)
         for x, y in data:
             coordwriter.writerow([x, y])
@@ -289,29 +290,49 @@ def simpleInterpolate(data):
     return fillEmpty(data)
 
 
-def processVideo(f, verbose):
-    print("Processing frames...")
+def processVideo(f, outputtype,name, verbose): #added verbose here and when calling candidatePoints()
+    print "Processing frames..."
     pts = list(candidatePoints(f, verbose))
-    print("Done processing. Interpolating path...")
+    print "Done processing. Interpolating path..."
     data = list(findCenters(pts))
-
-
-    writeCSV(data)
+    if (outputtype == 1):
+        writeCSV(data, name)
+    if (outputtype == 2):
+        numpy.savetxt(name, data, fmt='%i')
 
 def run():
-    
-#    parser = argparse.ArgumentParser()
-#    parser.add_argument("-v", "--verbose", help="Print verbose output", action="store_true")
-#    args=parser.parse_args()
-#    verbose=args.verbose
-    verbose=True
-#    for vid in sys.argv[1]:
-#        print vid
-    vid="samplevid.avi"
-    processVideo(vid, verbose)
+    parser = argparse.ArgumentParser()
+    parser.add_argument("video", nargs="*", default=["test.avi", "test.avi"])
+    parser.add_argument("--write", default="csv", help="this is to give a csv file")
+    #added verbose argument to argparser
+    parser.add_argument("-v", "--verbose", help="Print verbose output", action="store_true")
+    args = parser.parse_args()
+    if args.write == "csv":
+        otype = 1
+        filetype = ".csv"
+        enableprocess = 1
+    elif args.write == "txt":
+        otype = 2
+        filetype= ".txt"
+        enableprocess = 1
+    else :
+        otype = None
+        filetype = ".csv"
+        enableprocess = 0
+        print "Please give a valid file type after \"--write\"."
+    # verbose variable
+    verbose=args.verbose
 
-    
-    cv2.destroyAllWindows()
+    if enableprocess == 1:
+        vidnum = len(args.video)
+        for i in range(0, vidnum):
+            a = args.video[i].find(".")
+            filename = args.video[i][:a]
+            processVideo(args.video[i], otype, filename+filetype, verbose)#added verbose as parameter
+    else :
+        exit (0)
+
+
 
 if __name__ == "__main__":
     run()

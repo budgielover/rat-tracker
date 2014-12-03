@@ -6,6 +6,7 @@ from math import sqrt
 import sys
 import random
 import csv
+import argparse
 
 # 3rd party
 import cv2
@@ -19,7 +20,7 @@ def writeCSV(data, file):
         for x, y in data:
             coordwriter.writerow([x, y])
 
-def reviewCoords(data, f,verbose):
+def reviewCoords(data, f,verbose):#added verbose parameter
     """
     This plays the video back frame by frame superimposing the points from the
     rest of the function onto it. It allows the user to click to change the point if it
@@ -66,8 +67,9 @@ def reviewCoords(data, f,verbose):
             cv2.circle(frame, point, 4, (0, 0, 255))
         cv2.imshow("frame", frame)
         cv2.waitKey()
+        #added first part of this if statement
         if(corrected) and verbose:
-            print("rewrote frame {}".format(n)+" from %s to %s".format(point, newPoint))
+            print("rewrote frame {}".format(n)+" from {} to {}".format(point, newPoint))
             data[n-1] = newPoint
         elif(corrected):
             print("rewrote frame {}".format(n))
@@ -93,8 +95,9 @@ def run():
     with open(str(sys.argv[1])) as csvfile:
         data = [(int(x), int(y)) for x, y in csv.reader(csvfile, delimiter= ',')]
     print data
+    #verbose variable that is not actually connected to command line
     verbose=True
-    reviewCoords(data, str(sys.argv[2]),verbose)
+    reviewCoords(data, str(sys.argv[2]),verbose) #added verbose parameter
     writeCSV(data, str(sys.argv[1]))
     cv2.destroyAllWindows()
     
