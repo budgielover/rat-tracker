@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 # builtin
 from itertools import islice, izip
 from math import sqrt
@@ -42,16 +40,29 @@ def reviewCoords(data, f):
         cv2.imshow("frame", drawFrame)
     def nothing(x):
         pass
+    def help(image):
+        image1=image.copy()
+        image2=image.copy()
+        image3=image.copy()
+        cv2.putText(image, "press any key to the next frame", (10,100), cv2.FONT_HERSHEY_SIMPLEX, 0.5, 255)
+        cv2.imshow("frame", image)
+        k=cv2.waitKey()
+        cv2.putText(image1, "or drag trackbar to a certain frame", (10,100), cv2.FONT_HERSHEY_SIMPLEX, 0.5, 255)
+        cv2.imshow("frame", image1)
+        k=cv2.waitKey()
+        cv2.putText(image2, "revisement will be recorded when exiting", (10,100), cv2.FONT_HERSHEY_SIMPLEX, 0.45, 255)
+        cv2.imshow("frame", image2)
+        k=cv2.waitKey()
+        cv2.putText(image3, "ok let's start :)", (10,100), cv2.FONT_HERSHEY_SIMPLEX, 0.5, 255)
+        cv2.imshow("frame", image3)
+        k=cv2.waitKey()
 
     cv2.namedWindow('frame')
     cv2.setMouseCallback('frame', on_mouse)
-
     length=len(data)
     cap = cv2.VideoCapture(f)
 
-    switch = '1 : OFF+Enter \n0 : ON'
-    cv2.createTrackbar(switch, 'frame',0,1,nothing)
-    num = 'frame number'
+    num = 'Framenum'
     cv2.createTrackbar(num, 'frame',1,length,nothing)
 
     n=0
@@ -60,19 +71,22 @@ def reviewCoords(data, f):
         corrected = False
         n=n+1
         point=data[n-1]
+        cv2.setTrackbarPos(num, 'frame', n)
         cap.set(cv2.cv.CV_CAP_PROP_POS_FRAMES,n-1)
         ret, frame = cap.read()
         if point != ([], []):
             cv2.circle(frame, point, 4, (0, 0, 255))
+        cv2.putText(frame, "Help:h Exit:ESC", (10,10), cv2.FONT_HERSHEY_SIMPLEX, 0.4, 255)
         cv2.imshow("frame", frame)
-        cv2.waitKey()
+        k=cv2.waitKey()
+        if k == 27:         # wait for ESC key to exit
+            break
+        if k == 104:
+            help(frame)
         if(corrected):
             print("rewrote frame {}".format(n))
             data[n-1] = newPoint
-        s = cv2.getTrackbarPos(switch,'frame')
         framenum = cv2.getTrackbarPos(num,'frame')        
-        if s == 1:
-            break
         if framenum!=preframe:
             n=framenum-1
             preframe=framenum       
@@ -84,16 +98,12 @@ def reviewCoords(data, f):
 def run():
     total = len(sys.argv)
     cmdargs = str(sys.argv)
-    print ("The total numbers of args passed to the script: %d " % total)
-    print ("Args list: %s " % cmdargs)
     # Pharsing args one by one 
     with open(str(sys.argv[1])) as csvfile:
         data = [(int(x), int(y)) for x, y in csv.reader(csvfile, delimiter= ',')]
-    print data
     reviewCoords(data, str(sys.argv[2]))
     writeCSV(data, str(sys.argv[1]))
     cv2.destroyAllWindows()
     
 if __name__ == "__main__":
     run()
-        
