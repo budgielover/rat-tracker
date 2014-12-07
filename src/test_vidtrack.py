@@ -45,7 +45,7 @@ def test_writeCSV(tmpdir):
 
 
 def test_frames(tmpdir):
-    file='testgreen.avi'
+    file='test.avi'
     k=0
     for n, total, frame in vidtrack.frames(file):
         k=k+1
@@ -54,22 +54,22 @@ def test_frames(tmpdir):
         assert frame.shape==(480,720,3)
 
 def test_findBackground():
-    file='testgreen.avi'
+    file='test.avi'
     assert vidtrack.findBackground(file,0.01).shape==(480,720)
     assert vidtrack.findBackground(file,0.01)[1][1]==0
 
 def test_candidatePoints():
-    file='testgreen.avi'
+    file='test.avi'
     assert list(vidtrack.candidatePoints(file,0))==[([(351,229)],[(351,229)]),([(506,333)],[(506,333)]),([(185,146)],[(185,146)])]
 
 def test_findwithcandidate():
-    file='testgreen.avi'
+    file='test.avi'
     pts = list(vidtrack.candidatePoints(file,0))
     data = list(vidtrack.findCenters(pts))
     assert data==[(351,229),(506,333),(185,146)]
 
 def test_systemvid(tmpdir):
-    file='testgreen.avi'
+    file='test.avi'
     pts = list(vidtrack.candidatePoints(file,0))
     data = list(vidtrack.findCenters(pts))
     file = tmpdir.join('output.txt')
