@@ -53,6 +53,10 @@ sphinx-build sourcedir builddir
 
 Sourcedir is the source directory and builder is where you wish to place your files. For more command-line options, see http://sphinx-doc.org/invocation.html#invocation.
 
+Installation guide for Scripts
+===============================
+To install the scripts globally, simply run python setup.py install
+
 Tutorial
 ===========
 The rat-tracker program is a command-line utility that allows a user to input a video file, receive and outputted file contacting the coordinates of the rat, and review the video and correct any mistakes in the coordinate locations. There are two scripts in the rat-tracker program. The first, vidtrack.py, finds the rat’s location and outputs a file containing the coordinates. The second, reviewCoords.py, opens a GUI and allows the user to go over each frame and change the coordinates. 
