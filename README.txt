@@ -52,7 +52,7 @@ This generates rst files. Outputdir is the location of the outputted files and p
 sphinx-build sourcedir builddir 
 
 Sourcedir is the source directory and builder is where you wish to place your files. For more command-line options, see http://sphinx-doc.org/invocation.html#invocation.
-
+To view the generated documentation, go to you builddir. On github, go to /docs/sphinx/html/.
 Installation guide for Scripts
 ===============================
 To install the scripts globally, simply run python setup.py install
