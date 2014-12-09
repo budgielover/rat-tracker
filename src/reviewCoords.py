@@ -12,6 +12,9 @@ import numpy
 from numpy import unravel_index
 
 def writeCSV(data, file):
+	"""
+	Writes coordinates from data list into CSV file
+	"""
     with open(file, 'wb') as csvfile:
         coordwriter = csv.writer(csvfile)
         for x, y in data:
@@ -96,6 +99,10 @@ def reviewCoords(data, f):
     
     
 def run():
+	"""
+	Runs the routine to superimpose points and 
+	allow user to correct data and then save 
+	"""
     total = len(sys.argv)
     cmdargs = str(sys.argv)
     # Pharsing args one by one 

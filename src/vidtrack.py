@@ -57,14 +57,23 @@ def brightest(frame, n, bgmask = None):
 
 
 def interpolate(x, y, alpha):
+	"""
+	interpolate data point
+	"""
     return x * (1 - alpha) + y * alpha
 
 def dist(pt1, pt2):
+	"""
+	Returns distance between pt1 and pt2
+	"""
     dx = pt1[0] - pt2[0]
     dy = pt1[1] - pt2[1]
     return sqrt(dx**2 + dy**2)
 
 def minDist(pt, pts):
+	"""
+	Returns closest point
+	"""
     return min(dist(pt, p) for p in pts)
 
 
@@ -172,6 +181,9 @@ def findCenters(data):
     return Centers
 
 def writeCSV(data):
+	"""
+	Writes data to CSV file called coords.csv
+	"""
     with open('coords.csv', 'wb') as csvfile:
         coordwriter = csv.writer(csvfile)
         for x, y in data:
@@ -179,6 +191,9 @@ def writeCSV(data):
         
 
 def processVideo(f):
+	"""
+	Routine to get from video points and write to CSV
+	"""
     print("Processing frames...")
     pts = list(candidatePoints(f))
     print("Done processing. Interpolating path...")
