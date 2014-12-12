@@ -10,7 +10,7 @@ import reviewCoords
 
 #please click on the screen randomly when test the GUI(to rewrite the data), and after you see "pytest-qt-1.2.2/pytestqt/_tests/test_basics.py .....", close the interface by hand
 #def test_reviewCoords():
-#    file='testgreen.avi'
+#    file='test.avi'
 #    data=[(351,229),(506,333),(185,146)]
 #    reviewCoords.reviewCoords(data,file)
 #    assert data!=[(351,229),(506,333),(185,146)]
